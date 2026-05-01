@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>Конвертер в прибы</title>
+
+<style>
+body {
+    margin: 0;
+    font-family: "Segoe UI", Arial, sans-serif;
+    background: linear-gradient(135deg, #0f172a, #1e293b);
+    color: #e2e8f0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+}
+
+.container {
+    background: #111827;
+    padding: 25px;
+    border-radius: 16px;
+    width: 420px;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.6);
+}
+
+h2 {
+    text-align: center;
+    margin-bottom: 20px;
+    font-weight: 600;
+}
+
+.section {
+    margin-bottom: 15px;
+}
+
+.label {
+    font-size: 13px;
+    margin-bottom: 5px;
+    color: #94a3b8;
+}
+
+.grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+}
+
+input {
+    background: #1f2937;
+    border: 1px solid #374151;
+    color: white;
+    padding: 10px;
+    border-radius: 10px;
+    font-size: 14px;
+    text-align: center;
+}
+
+input:focus {
+    outline: none;
+    border-color: #38bdf8;
+}
+
+select {
+    width: 100%;
+    background: #1f2937;
+    border: 1px solid #374151;
+    color: white;
+    padding: 10px;
+    border-radius: 10px;
+}
+
+button {
+    width: 100%;
+    padding: 12px;
+    border: none;
+    border-radius: 12px;
+    background: #38bdf8;
+    color: black;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    margin-top: 10px;
+    transition: 0.2s;
+}
+
+button:hover {
+    background: #0ea5e9;
+}
+
+.result {
+    margin-top: 18px;
+    padding: 12px;
+    background: #020617;
+    border-radius: 10px;
+    text-align: center;
+    font-size: 18px;
+    border: 1px solid #334155;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+    <h2>Конвертер в прибы</h2>
+
+    <div class="section">
+        <div class="label">Сумма (разряды)</div>
+        <div class="grid">
+            <input id="billions" placeholder="Млрд">
+            <input id="millions" placeholder="Млн">
+            <input id="thousands" placeholder="Тысячи">
+            <input id="hundreds" placeholder="Сотни">
+            <input id="tens" placeholder="Десятки">
+            <input id="ones" placeholder="Ед.">
+        </div>
+    </div>
+
+    <div class="section">
+        <div class="label">Валюта</div>
+        <select id="currency">
+            <option value="usd">Доллары ($)</option>
+            <option value="rub">Рубли (₽)</option>
+            <option value="eur">Евро (€)</option>
+            <option value="gbp">Фунты (£)</option>
+            <option value="jpy">Иены (¥)</option>
+        </select>
+    </div>
+
+    <button onclick="convert()">Конвертировать</button>
+
+    <div class="result" id="result">Результат появится здесь</div>
+</div>
+
+<script>
+document.addEventListener("keydown", function(e) {
+    if (e.key === "Enter") convert();
+});
+
+function val(id) {
+    return parseFloat(document.getElementById(id).value) || 0;
+}
+
+function convert() {
+    let amount =
+        val("billions") * 1e9 +
+        val("millions") * 1e6 +
+        val("thousands") * 1e3 +
+        val("hundreds") * 100 +
+        val("tens") * 10 +
+        val("ones");
+
+    if (amount === 0) {
+        document.getElementById("result").innerText = "Введите сумму";
+        return;
+    }
+
+    let currency = document.getElementById("currency").value;
+    let prib;
+
+    switch(currency) {
+        case "usd": prib = amount / 0.64; break;
+        case "rub": prib = amount / 23; break;
+        case "eur": prib = amount / (0.64 * 1.1); break;
+        case "gbp": prib = amount / (0.64 * 1.25); break;
+        case "jpy": prib = amount / (0.64 * 0.007); break;
+    }
+
+    document.getElementById("result").innerText =
+        "≈ " + prib.toLocaleString("ru-RU", {maximumFractionDigits: 2}) + " прибов";
+}
+</script>
+
+</body>
+</html>
