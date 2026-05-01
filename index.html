@@ -97,16 +97,38 @@ button:hover {
     font-size: 18px;
     border: 1px solid #334155;
 }
+
+.mode {
+    display: flex;
+    gap: 10px;
+}
+
+.mode button {
+    flex: 1;
+    background: #1f2937;
+    color: #e2e8f0;
+    border: 1px solid #374151;
+}
+
+.mode button.active {
+    background: #38bdf8;
+    color: black;
+}
 </style>
 </head>
 
 <body>
 
 <div class="container">
-    <h2>Конвертер в прибы</h2>
+    <h2>Конвертер валют ⇄ прибов</h2>
+
+    <div class="section mode">
+        <button id="toPrib" class="active" onclick="setMode('toPrib')">В приб</button>
+        <button id="fromPrib" onclick="setMode('fromPrib')">Из приб</button>
+    </div>
 
     <div class="section">
-        <div class="label">Сумма (разряды)</div>
+        <div class="label">Сумма</div>
         <div class="grid">
             <input id="billions" placeholder="Млрд">
             <input id="millions" placeholder="Млн">
@@ -134,41 +156,70 @@ button:hover {
 </div>
 
 <script>
+let mode = "toPrib";
+
 document.addEventListener("keydown", function(e) {
     if (e.key === "Enter") convert();
 });
+
+function setMode(newMode) {
+    mode = newMode;
+
+    document.getElementById("toPrib").classList.remove("active");
+    document.getElementById("fromPrib").classList.remove("active");
+
+    document.getElementById(newMode).classList.add("active");
+}
 
 function val(id) {
     return parseFloat(document.getElementById(id).value) || 0;
 }
 
-function convert() {
-    let amount =
+function getAmount() {
+    return (
         val("billions") * 1e9 +
         val("millions") * 1e6 +
         val("thousands") * 1e3 +
         val("hundreds") * 100 +
         val("tens") * 10 +
-        val("ones");
+        val("ones")
+    );
+}
+
+function convert() {
+    let amount = getAmount();
+    let currency = document.getElementById("currency").value;
 
     if (amount === 0) {
         document.getElementById("result").innerText = "Введите сумму";
         return;
     }
 
-    let currency = document.getElementById("currency").value;
-    let prib;
+    let result;
 
-    switch(currency) {
-        case "usd": prib = amount / 0.64; break;
-        case "rub": prib = amount / 23; break;
-        case "eur": prib = amount / (0.64 * 1.1); break;
-        case "gbp": prib = amount / (0.64 * 1.25); break;
-        case "jpy": prib = amount / (0.64 * 0.007); break;
+    if (mode === "toPrib") {
+        switch(currency) {
+            case "usd": result = amount / 0.64; break;
+            case "rub": result = amount / 23; break;
+            case "eur": result = amount / (0.64 * 1.1); break;
+            case "gbp": result = amount / (0.64 * 1.25); break;
+            case "jpy": result = amount / (0.64 * 0.007); break;
+        }
+        document.getElementById("result").innerText =
+            "≈ " + result.toLocaleString("ru-RU", {maximumFractionDigits: 2}) + " прибов";
     }
 
-    document.getElementById("result").innerText =
-        "≈ " + prib.toLocaleString("ru-RU", {maximumFractionDigits: 2}) + " прибов";
+    else {
+        switch(currency) {
+            case "usd": result = amount * 0.64; break;
+            case "rub": result = amount * 23; break;
+            case "eur": result = amount * 0.64 * 1.1; break;
+            case "gbp": result = amount * 0.64 * 1.25; break;
+            case "jpy": result = amount * 0.64 * 0.007; break;
+        }
+        document.getElementById("result").innerText =
+            "≈ " + result.toLocaleString("ru-RU", {maximumFractionDigits: 2});
+    }
 }
 </script>
 
