@@ -1,227 +1,101 @@
-<!DOCTYPE html>
-<html lang="ru">
-<head>
-<meta charset="UTF-8">
-<title>Конвертер в прибы</title>
-
-<style>
-body {
-    margin: 0;
-    font-family: "Segoe UI", Arial, sans-serif;
-    background: linear-gradient(135deg, #0f172a, #1e293b);
-    color: #e2e8f0;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    height: 100vh;
-}
-
-.container {
-    background: #111827;
-    padding: 25px;
-    border-radius: 16px;
-    width: 420px;
-    box-shadow: 0 10px 40px rgba(0,0,0,0.6);
-}
-
-h2 {
-    text-align: center;
-    margin-bottom: 20px;
-    font-weight: 600;
-}
-
-.section {
-    margin-bottom: 15px;
-}
-
-.label {
-    font-size: 13px;
-    margin-bottom: 5px;
-    color: #94a3b8;
-}
-
-.grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 10px;
-}
-
-input {
-    background: #1f2937;
-    border: 1px solid #374151;
-    color: white;
-    padding: 10px;
-    border-radius: 10px;
-    font-size: 14px;
-    text-align: center;
-}
-
-input:focus {
-    outline: none;
-    border-color: #38bdf8;
-}
-
-select {
-    width: 100%;
-    background: #1f2937;
-    border: 1px solid #374151;
-    color: white;
-    padding: 10px;
-    border-radius: 10px;
-}
-
-button {
-    width: 100%;
-    padding: 12px;
-    border: none;
-    border-radius: 12px;
-    background: #38bdf8;
-    color: black;
-    font-size: 16px;
-    font-weight: bold;
-    cursor: pointer;
-    margin-top: 10px;
-    transition: 0.2s;
-}
-
-button:hover {
-    background: #0ea5e9;
-}
-
-.result {
-    margin-top: 18px;
-    padding: 12px;
-    background: #020617;
-    border-radius: 10px;
-    text-align: center;
-    font-size: 18px;
-    border: 1px solid #334155;
-}
-
-.mode {
-    display: flex;
-    gap: 10px;
-}
-
-.mode button {
-    flex: 1;
-    background: #1f2937;
-    color: #e2e8f0;
-    border: 1px solid #374151;
-}
-
-.mode button.active {
-    background: #38bdf8;
-    color: black;
-}
-</style>
-</head>
-
-<body>
-
-<div class="container">
-    <h2>Конвертер валют ⇄ прибов</h2>
-
-    <div class="section mode">
-        <button id="toPrib" class="active" onclick="setMode('toPrib')">В приб</button>
-        <button id="fromPrib" onclick="setMode('fromPrib')">Из приб</button>
-    </div>
-
-    <div class="section">
-        <div class="label">Сумма</div>
-        <div class="grid">
-            <input id="billions" placeholder="Млрд">
-            <input id="millions" placeholder="Млн">
-            <input id="thousands" placeholder="Тысячи">
-            <input id="hundreds" placeholder="Сотни">
-            <input id="tens" placeholder="Десятки">
-            <input id="ones" placeholder="Ед.">
-        </div>
-    </div>
-
-    <div class="section">
-        <div class="label">Валюта</div>
-        <select id="currency">
-            <option value="usd">Доллары ($)</option>
-            <option value="rub">Рубли (₽)</option>
-            <option value="eur">Евро (€)</option>
-            <option value="gbp">Фунты (£)</option>
-            <option value="jpy">Иены (¥)</option>
-        </select>
-    </div>
-
-    <button onclick="convert()">Конвертировать</button>
-
-    <div class="result" id="result">Результат появится здесь</div>
-</div>
-
 <script>
-let mode = "toPrib";
+const rates = {
+    prib_usd: 0.64,
+    prib_rub: 23,
+    usd_eur: 0.91,
+    usd_gbp: 0.8,
+    usd_jpy: 150
+};
 
-document.addEventListener("keydown", function(e) {
-    if (e.key === "Enter") convert();
+document.getElementById("input").addEventListener("keydown", function(e) {
+    if (e.key === "Enter") parse();
 });
 
-function setMode(newMode) {
-    mode = newMode;
-
-    document.getElementById("toPrib").classList.remove("active");
-    document.getElementById("fromPrib").classList.remove("active");
-
-    document.getElementById(newMode).classList.add("active");
+function normalize(text) {
+    return text.toLowerCase()
+        .replace(",", ".") // фикс запятой
+        .replace(/миллиард(ов|а)?/g, "e9")
+        .replace(/миллион(ов|а)?/g, "e6")
+        .replace(/тысяч(и)?/g, "e3")
+        .replace(/доллар(ов|а)?|usd/g, "usd")
+        .replace(/руб(лей|ля|ли)?|₽/g, "rub")
+        .replace(/евро|eur/g, "eur")
+        .replace(/фунт(ов|а)?|gbp/g, "gbp")
+        .replace(/иен(ы)?|jpy/g, "jpy")
+        .replace(/приб(ов|а)?/g, "prib");
 }
 
-function val(id) {
-    return parseFloat(document.getElementById(id).value) || 0;
+function extractNumber(text) {
+    let match = text.match(/[\d.]+(e\d+)?/);
+    return match ? Number(match[0]) : null;
 }
 
-function getAmount() {
-    return (
-        val("billions") * 1e9 +
-        val("millions") * 1e6 +
-        val("thousands") * 1e3 +
-        val("hundreds") * 100 +
-        val("tens") * 10 +
-        val("ones")
-    );
-}
+function parse() {
+    let raw = document.getElementById("input").value;
+    let text = normalize(raw);
 
-function convert() {
-    let amount = getAmount();
-    let currency = document.getElementById("currency").value;
+    let num = extractNumber(text);
 
-    if (amount === 0) {
-        document.getElementById("result").innerText = "Введите сумму";
+    if (!num) {
+        show("Не понял число");
+        return;
+    }
+
+    let parts = text.split("в");
+    let from = parts[0];
+    let to = parts[1];
+
+    function detect(str) {
+        if (!str) return null;
+        if (str.includes("usd")) return "usd";
+        if (str.includes("rub")) return "rub";
+        if (str.includes("eur")) return "eur";
+        if (str.includes("gbp")) return "gbp";
+        if (str.includes("jpy")) return "jpy";
+        if (str.includes("prib")) return "prib";
+        return null;
+    }
+
+    let fromCur = detect(from);
+    let toCur = detect(to) || "prib";
+
+    if (!fromCur) {
+        show("Не понял валюту");
         return;
     }
 
     let result;
 
-    if (mode === "toPrib") {
-        switch(currency) {
-            case "usd": result = amount / 0.64; break;
-            case "rub": result = amount / 23; break;
-            case "eur": result = amount / (0.64 * 1.1); break;
-            case "gbp": result = amount / (0.64 * 1.25); break;
-            case "jpy": result = amount / (0.64 * 0.007); break;
+    if (toCur === "prib") {
+        switch(fromCur) {
+            case "usd": result = num / 0.64; break;
+            case "rub": result = num / 23; break;
+            case "eur": result = num / (0.64 * 0.91); break;
+            case "gbp": result = num / (0.64 * 0.8); break;
+            case "jpy": result = num / (0.64 / 150); break;
+            case "prib": result = num; break;
         }
-        document.getElementById("result").innerText =
-            "≈ " + result.toLocaleString("ru-RU", {maximumFractionDigits: 2}) + " прибов";
+        show(result, "прибов");
+    }
+
+    else if (fromCur === "prib") {
+        switch(toCur) {
+            case "usd": result = num * 0.64; break;
+            case "rub": result = num * 23; break;
+            case "eur": result = num * 0.64 * 0.91; break;
+            case "gbp": result = num * 0.64 * 0.8; break;
+            case "jpy": result = num * 0.64 / 150; break;
+        }
+        show(result, toCur.toUpperCase());
     }
 
     else {
-        switch(currency) {
-            case "usd": result = amount * 0.64; break;
-            case "rub": result = amount * 23; break;
-            case "eur": result = amount * 0.64 * 1.1; break;
-            case "gbp": result = amount * 0.64 * 1.25; break;
-            case "jpy": result = amount * 0.64 * 0.007; break;
-        }
-        document.getElementById("result").innerText =
-            "≈ " + result.toLocaleString("ru-RU", {maximumFractionDigits: 2});
+        show("Только через приб");
     }
 }
-</script>
 
-</body>
-</html>
+function show(value, unit) {
+    document.getElementById("result").innerText =
+        "≈ " + value.toLocaleString("ru-RU", {maximumFractionDigits: 2}) + " " + unit;
+}
+</script>
