@@ -7,16 +7,32 @@ const rates = {
     usd_jpy: 150
 };
 
-document.getElementById("input").addEventListener("keydown", function(e) {
-    if (e.key === "Enter") parse();
+const input = document.getElementById("input");
+const resultEl = document.getElementById("result");
+
+input.addEventListener("input", safeConvert);
+input.addEventListener("keydown", e => {
+    if (e.key === "Enter") safeConvert();
 });
+
+function safeConvert() {
+    try {
+        convert();
+    } catch (e) {
+        resultEl.innerText = "Ошибка обработки";
+        console.error(e);
+    }
+}
 
 function normalize(text) {
     return text.toLowerCase()
-        .replace(",", ".") // фикс запятой
+        .replace(",", ".")
         .replace(/миллиард(ов|а)?/g, "e9")
         .replace(/миллион(ов|а)?/g, "e6")
         .replace(/тысяч(и)?/g, "e3")
+        .replace(/k/g, "e3")
+        .replace(/m/g, "e6")
+        .replace(/b/g, "e9")
         .replace(/доллар(ов|а)?|usd/g, "usd")
         .replace(/руб(лей|ля|ли)?|₽/g, "rub")
         .replace(/евро|eur/g, "eur")
@@ -30,14 +46,24 @@ function extractNumber(text) {
     return match ? Number(match[0]) : null;
 }
 
-function parse() {
-    let raw = document.getElementById("input").value;
+function detect(str) {
+    if (!str) return null;
+    if (str.includes("usd")) return "usd";
+    if (str.includes("rub")) return "rub";
+    if (str.includes("eur")) return "eur";
+    if (str.includes("gbp")) return "gbp";
+    if (str.includes("jpy")) return "jpy";
+    if (str.includes("prib")) return "prib";
+    return null;
+}
+
+function convert() {
+    let raw = input.value;
     let text = normalize(raw);
 
     let num = extractNumber(text);
-
     if (!num) {
-        show("Не понял число");
+        resultEl.innerText = "Не понял число";
         return;
     }
 
@@ -45,22 +71,11 @@ function parse() {
     let from = parts[0];
     let to = parts[1];
 
-    function detect(str) {
-        if (!str) return null;
-        if (str.includes("usd")) return "usd";
-        if (str.includes("rub")) return "rub";
-        if (str.includes("eur")) return "eur";
-        if (str.includes("gbp")) return "gbp";
-        if (str.includes("jpy")) return "jpy";
-        if (str.includes("prib")) return "prib";
-        return null;
-    }
-
     let fromCur = detect(from);
     let toCur = detect(to) || "prib";
 
     if (!fromCur) {
-        show("Не понял валюту");
+        resultEl.innerText = "Не понял валюту";
         return;
     }
 
@@ -75,7 +90,7 @@ function parse() {
             case "jpy": result = num / (0.64 / 150); break;
             case "prib": result = num; break;
         }
-        show(result, "прибов");
+        resultEl.innerText = format(result) + " прибов";
     }
 
     else if (fromCur === "prib") {
@@ -86,16 +101,19 @@ function parse() {
             case "gbp": result = num * 0.64 * 0.8; break;
             case "jpy": result = num * 0.64 / 150; break;
         }
-        show(result, toCur.toUpperCase());
+        resultEl.innerText = format(result) + " " + toCur.toUpperCase();
     }
 
     else {
-        show("Только через приб");
+        resultEl.innerText = "Только через приб";
     }
 }
 
-function show(value, unit) {
-    document.getElementById("result").innerText =
-        "≈ " + value.toLocaleString("ru-RU", {maximumFractionDigits: 2}) + " " + unit;
+// красивое форматирование
+function format(num) {
+    if (num >= 1e9) return (num/1e9).toFixed(2) + " млрд";
+    if (num >= 1e6) return (num/1e6).toFixed(2) + " млн";
+    if (num >= 1e3) return (num/1e3).toFixed(2) + " тыс";
+    return num.toFixed(2);
 }
 </script>
